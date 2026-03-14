@@ -68,15 +68,19 @@ In your GitHub repo: **Settings → Secrets and variables → Actions**, add:
 
 (You can use **AmazonEC2ContainerRegistryPowerUser** for ECR and attach a custom policy or **AmazonECS_FullAccess** for ECS, or a single custom policy with the above.)
 
-### 4. ECS cluster and task definitions
+### 4. ECS cluster, task definitions, and service names
 
 The workflow deploys to:
 
 - **Cluster:** `event-booking-cluster` (set in the workflow as `ECS_CLUSTER`).
 - **Task definitions:** `user-service-task`, `event-service-task`, `booking-service-task`, `payment-service-task`.
-- **Services:** `user-service`, `event-service`, `booking-service`, `payment-service` (must exist in the cluster).
+- **ECS service names** (actual names in the cluster, set in the workflow matrix):
+  - `user-service-task-service-uhaj7gal`
+  - `event-service-task-service-x7hqnr5m`
+  - `booking-service-task-service-r9lxp1ze`
+  - `payment-service-task-service-k2mr46kq`
 
-Ensure these resources exist in AWS and that the task definitions use the correct ECR image (they will be updated with the new image on each run).
+If you create new ECS services (e.g. after recreating the cluster), update the `ecs_service` entries in `.github/workflows/ecr-build-push.yml` to match the new service names.
 
 ### 5. Set AWS region (optional)
 

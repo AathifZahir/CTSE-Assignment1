@@ -22,15 +22,19 @@ jobs:
           - service: user-service
             context: user-service
             task_definition: user-service-task
+            ecs_service: user-service-task-service-uhaj7gal
           - service: event-service
             context: event-service
             task_definition: event-service-task
+            ecs_service: event-service-task-service-x7hqnr5m
           - service: booking-service
             context: booking-service
             task_definition: booking-service-task
+            ecs_service: booking-service-task-service-r9lxp1ze
           - service: payment-service
             context: payment-service
             task_definition: payment-service-task
+            ecs_service: payment-service-task-service-k2mr46kq
 
     steps:
       - name: Checkout
@@ -79,6 +83,6 @@ jobs:
         uses: aws-actions/amazon-ecs-deploy-task-definition@v2
         with:
           task-definition: ${{ steps.task-def.outputs.task-definition }}
-          service: ${{ matrix.service }}
+          service: ${{ matrix.ecs_service }}
           cluster: ${{ env.ECS_CLUSTER }}
           wait-for-service-stability: true
