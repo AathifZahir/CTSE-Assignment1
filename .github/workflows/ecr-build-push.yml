@@ -1,7 +1,7 @@
-# Build and push all service images to Amazon ECR on push.
-# Run from repo root (event-ticket-booking-system). Updates all four services.
+# Build, push to ECR, and deploy to ECS for all services on push.
+# Run from repo root (event-ticket-booking-system). Updates images, task definitions, and services.
 
-name: ECR Build and Push (All Services)
+name: ECR Build, Push & ECS Deploy (All Services)
 
 on:
   push:
@@ -10,9 +10,10 @@ on:
 
 env:
   AWS_REGION: us-east-1
+  ECS_CLUSTER: event-booking-cluster
 
 jobs:
-  build-and-push:
+  build-push-deploy:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -20,12 +21,16 @@ jobs:
         include:
           - service: user-service
             context: user-service
+            task_definition: user-service-task
           - service: event-service
             context: event-service
+            task_definition: event-service-task
           - service: booking-service
             context: booking-service
+            task_definition: booking-service-task
           - service: payment-service
             context: payment-service
+            task_definition: payment-service-task
 
     steps:
       - name: Checkout
@@ -43,6 +48,7 @@ jobs:
         uses: aws-actions/amazon-ecr-login@v2
 
       - name: Build, tag, and push to ECR
+        id: build-image
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           ECR_REPOSITORY: ${{ matrix.service }}
@@ -52,4 +58,27 @@ jobs:
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_LATEST ./${{ matrix.context }}
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_LATEST
+          echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
           echo "Pushed $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG and :latest"
+
+      - name: Download ECS task definition
+        run: |
+          aws ecs describe-task-definition \
+            --task-definition ${{ matrix.task_definition }} \
+            --query taskDefinition > task-definition.json
+
+      - name: Render task definition with new image
+        id: task-def
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: task-definition.json
+          container-name: ${{ matrix.service }}
+          image: ${{ steps.build-image.outputs.image }}
+
+      - name: Deploy to ECS
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v2
+        with:
+          task-definition: ${{ steps.task-def.outputs.task-definition }}
+          service: ${{ matrix.service }}
+          cluster: ${{ env.ECS_CLUSTER }}
+          wait-for-service-stability: true
