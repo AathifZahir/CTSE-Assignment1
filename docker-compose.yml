@@ -1,0 +1,45 @@
+services:
+  user-service:
+    build: ./user-service
+    ports:
+      - "3001:3001"
+    environment:
+      - PORT=3001
+      - MONGODB_URI=mongodb+srv://aathifzahir12_db_user:hfyTZavq1v5uRnVN@cluster0.s7y0brq.mongodb.net/user-service?appName=Cluster0
+      - JWT_SECRET=dev-secret-key
+      - SERVICE_TOKEN=dev-service-token
+
+  event-service:
+    build: ./event-service
+    ports:
+      - "3002:3002"
+    environment:
+      - PORT=3002
+      - MONGODB_URI=mongodb+srv://aathifzahir12_db_user:hfyTZavq1v5uRnVN@cluster0.s7y0brq.mongodb.net/event-service?appName=Cluster0
+      - SERVICE_TOKEN=dev-service-token
+
+  booking-service:
+    build: ./booking-service
+    ports:
+      - "3003:3003"
+    environment:
+      - PORT=3003
+      - MONGODB_URI=mongodb+srv://aathifzahir12_db_user:hfyTZavq1v5uRnVN@cluster0.s7y0brq.mongodb.net/booking-service?appName=Cluster0
+      - USER_SERVICE_URL=http://user-service:3001
+      - EVENT_SERVICE_URL=http://event-service:3002
+      - PAYMENT_SERVICE_URL=http://payment-service:3004
+      - SERVICE_TOKEN=dev-service-token
+    depends_on:
+      - user-service
+      - event-service
+      - payment-service
+
+  payment-service:
+    build: ./payment-service
+    ports:
+      - "3004:3004"
+    environment:
+      - PORT=3004
+      - MONGODB_URI=mongodb+srv://aathifzahir12_db_user:hfyTZavq1v5uRnVN@cluster0.s7y0brq.mongodb.net/payment-service?appName=Cluster0
+      - BOOKING_SERVICE_URL=http://booking-service:3003
+      - SERVICE_TOKEN=dev-service-token

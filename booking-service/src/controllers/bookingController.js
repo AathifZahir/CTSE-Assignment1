@@ -11,6 +11,10 @@ const SERVICE_TOKEN = process.env.SERVICE_TOKEN || 'your-service-token';
 // Create new booking
 exports.createBooking = async (req, res, next) => {
   try {
+    console.log('\n[BOOKING-SERVICE] ========================================');
+    console.log('[BOOKING-SERVICE] NEW BOOKING REQUEST RECEIVED');
+    console.log('[BOOKING-SERVICE] ========================================');
+    
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({ errors: errors.array() });
@@ -19,6 +23,7 @@ exports.createBooking = async (req, res, next) => {
     const { userId, eventId, quantity } = req.body;
 
     // Validate user
+    console.log('\n[BOOKING-SERVICE] Step 1: Validating user...');
     try {
       await userService.validateUser(userId);
     } catch (error) {
@@ -26,6 +31,7 @@ exports.createBooking = async (req, res, next) => {
     }
 
     // Get event details and check availability
+    console.log('\n[BOOKING-SERVICE] Step 2: Getting event details and checking availability...');
     let event;
     try {
       event = await eventService.getEventDetails(eventId);
@@ -45,6 +51,7 @@ exports.createBooking = async (req, res, next) => {
     const totalAmount = event.price * quantity;
 
     // Reserve tickets
+    console.log('\n[BOOKING-SERVICE] Step 3: Reserving tickets...');
     try {
       await eventService.reserveTickets(eventId, quantity);
     } catch (error) {
@@ -52,6 +59,7 @@ exports.createBooking = async (req, res, next) => {
     }
 
     // Create booking
+    console.log('\n[BOOKING-SERVICE] Step 4: Creating booking record...');
     const booking = new Booking({
       userId,
       eventId,
@@ -63,6 +71,7 @@ exports.createBooking = async (req, res, next) => {
     await booking.save();
 
     // Initiate payment
+    console.log('\n[BOOKING-SERVICE] Step 5: Processing payment...');
     try {
       const payment = await paymentService.processPayment(
         booking._id.toString(),
@@ -73,6 +82,11 @@ exports.createBooking = async (req, res, next) => {
       booking.paymentId = payment.paymentId;
       booking.status = payment.status === 'success' ? 'confirmed' : 'pending';
       await booking.save();
+
+      console.log('[BOOKING-SERVICE] Step 5 Complete: Payment processed');
+      console.log('[BOOKING-SERVICE] ========================================');
+      console.log('[BOOKING-SERVICE] BOOKING CREATED SUCCESSFULLY');
+      console.log('[BOOKING-SERVICE] ========================================\n');
 
       res.status(201).json({
         message: 'Booking created successfully',
@@ -173,6 +187,8 @@ exports.cancelBooking = async (req, res, next) => {
 exports.confirmBooking = async (req, res, next) => {
   try {
     const { bookingId } = req.params;
+    console.log(`[BOOKING-SERVICE] Received booking confirmation request for: ${bookingId}`);
+    
     const booking = await Booking.findById(bookingId);
 
     if (!booking) {
@@ -181,6 +197,8 @@ exports.confirmBooking = async (req, res, next) => {
 
     booking.status = 'confirmed';
     await booking.save();
+
+    console.log(`[BOOKING-SERVICE] Booking confirmed: ${bookingId}`);
 
     res.json({
       message: 'Booking confirmed successfully',

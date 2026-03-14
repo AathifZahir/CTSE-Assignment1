@@ -99,9 +99,23 @@ exports.login = async (req, res, next) => {
 // Get user profile
 exports.getUserProfile = async (req, res, next) => {
   try {
-    const user = await User.findById(req.params.userId);
+    const userId = req.params.userId;
+    const serviceToken = req.headers['x-service-token'];
+    
+    if (serviceToken) {
+      console.log(`[USER-SERVICE] Service request for user profile: ${userId}`);
+    }
+    
+    const user = await User.findById(userId);
     if (!user) {
+      if (serviceToken) {
+        console.log(`[USER-SERVICE] User not found: ${userId}`);
+      }
       return res.status(404).json({ message: 'User not found' });
+    }
+
+    if (serviceToken) {
+      console.log(`[USER-SERVICE] User profile retrieved: ${userId} (${user.email})`);
     }
 
     res.json({

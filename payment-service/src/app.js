@@ -7,6 +7,7 @@ require('dotenv').config();
 
 const paymentRoutes = require('./routes/paymentRoutes');
 const { errorHandler } = require('./middleware/errorHandler');
+const { requestLogger } = require('./middleware/requestLogger');
 
 const app = express();
 const PORT = process.env.PORT || 3004;
@@ -36,6 +37,7 @@ const swaggerSpec = swaggerJsdoc(swaggerOptions);
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(requestLogger);
 
 // Swagger UI
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
@@ -51,6 +53,15 @@ app.get('/health', (req, res) => {
 // Error handling
 app.use(errorHandler);
 
+// Log service configuration on startup
+console.log('========================================');
+console.log('PAYMENT SERVICE STARTING');
+console.log('========================================');
+console.log(`Port: ${PORT}`);
+console.log(`Booking Service URL: ${process.env.BOOKING_SERVICE_URL || 'http://localhost:3003'}`);
+console.log(`MongoDB URI: ${process.env.MONGODB_URI ? 'Connected' : 'Not configured'}`);
+console.log('========================================');
+
 // Database connection
 mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/payment-service', {
   useNewUrlParser: true,
@@ -58,8 +69,11 @@ mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/payment-s
 })
   .then(() => {
     console.log('Connected to MongoDB');
-    app.listen(PORT, () => {
+    app.listen(PORT, '0.0.0.0', () => {
       console.log(`Payment Service running on port ${PORT}`);
+      console.log(`API Documentation: http://localhost:${PORT}/api-docs`);
+      console.log(`Health Check: http://localhost:${PORT}/health`);
+      console.log('========================================');
     });
   })
   .catch((error) => {

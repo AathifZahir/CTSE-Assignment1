@@ -47,9 +47,23 @@ exports.getAllEvents = async (req, res, next) => {
 // Get event by ID
 exports.getEventById = async (req, res, next) => {
   try {
-    const event = await Event.findById(req.params.eventId);
+    const eventId = req.params.eventId;
+    const serviceToken = req.headers['x-service-token'];
+    
+    if (serviceToken) {
+      console.log(`[EVENT-SERVICE] Service request for event details: ${eventId}`);
+    }
+    
+    const event = await Event.findById(eventId);
     if (!event) {
+      if (serviceToken) {
+        console.log(`[EVENT-SERVICE] Event not found: ${eventId}`);
+      }
       return res.status(404).json({ message: 'Event not found' });
+    }
+
+    if (serviceToken) {
+      console.log(`[EVENT-SERVICE] Event details retrieved: ${eventId}`);
     }
 
     res.json(event);
@@ -119,13 +133,17 @@ exports.checkAvailability = async (req, res, next) => {
   try {
     const { eventId } = req.params;
     const { quantity = 1 } = req.query;
+    
+    console.log(`[EVENT-SERVICE] 📥 Availability check request: eventId=${eventId}, quantity=${quantity}`);
 
     const event = await Event.findById(eventId);
     if (!event) {
+      console.log(`[EVENT-SERVICE] ❌ Event not found: ${eventId}`);
       return res.status(404).json({ message: 'Event not found' });
     }
 
     const available = event.availableTickets >= parseInt(quantity);
+    console.log(`[EVENT-SERVICE] ✅ Availability check: available=${event.availableTickets}, requested=${quantity}, canBook=${available}`);
 
     res.json({
       eventId,
@@ -144,13 +162,17 @@ exports.reserveTickets = async (req, res, next) => {
   try {
     const { eventId } = req.params;
     const { quantity } = req.body;
+    
+    console.log(`[EVENT-SERVICE] 📥 Ticket reservation request: eventId=${eventId}, quantity=${quantity}`);
 
     const event = await Event.findById(eventId);
     if (!event) {
+      console.log(`[EVENT-SERVICE] ❌ Event not found: ${eventId}`);
       return res.status(404).json({ message: 'Event not found' });
     }
 
     if (event.availableTickets < quantity) {
+      console.log(`[EVENT-SERVICE] ❌ Insufficient tickets: available=${event.availableTickets}, requested=${quantity}`);
       return res.status(400).json({
         message: 'Insufficient tickets available',
         available: event.availableTickets,
@@ -158,8 +180,12 @@ exports.reserveTickets = async (req, res, next) => {
       });
     }
 
+    const previousAvailable = event.availableTickets;
     event.availableTickets -= quantity;
     await event.save();
+
+    console.log(`[EVENT-SERVICE] ✅ Tickets reserved: ${quantity} tickets for event ${eventId}`);
+    console.log(`[EVENT-SERVICE] 📊 Availability: ${previousAvailable} → ${event.availableTickets} (remaining)`);
 
     res.json({
       message: 'Tickets reserved successfully',
@@ -177,14 +203,21 @@ exports.releaseTickets = async (req, res, next) => {
   try {
     const { eventId } = req.params;
     const { quantity } = req.body;
+    
+    console.log(`[EVENT-SERVICE] 📥 Ticket release request: eventId=${eventId}, quantity=${quantity}`);
 
     const event = await Event.findById(eventId);
     if (!event) {
+      console.log(`[EVENT-SERVICE] ❌ Event not found: ${eventId}`);
       return res.status(404).json({ message: 'Event not found' });
     }
 
+    const previousAvailable = event.availableTickets;
     event.availableTickets += quantity;
     await event.save();
+
+    console.log(`[EVENT-SERVICE] ✅ Tickets released: ${quantity} tickets for event ${eventId}`);
+    console.log(`[EVENT-SERVICE] 📊 Availability: ${previousAvailable} → ${event.availableTickets} (now available)`);
 
     res.json({
       message: 'Tickets released successfully',

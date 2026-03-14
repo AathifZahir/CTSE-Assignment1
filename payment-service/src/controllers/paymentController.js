@@ -20,6 +20,10 @@ const simulatePayment = async (amount) => {
 // Process payment
 exports.processPayment = async (req, res, next) => {
   try {
+    console.log('\n[PAYMENT-SERVICE] ========================================');
+    console.log('[PAYMENT-SERVICE] PAYMENT PROCESSING REQUEST RECEIVED');
+    console.log('[PAYMENT-SERVICE] ========================================');
+    
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({ errors: errors.array() });
@@ -31,6 +35,7 @@ exports.processPayment = async (req, res, next) => {
     const paymentId = `PAY-${Date.now()}-${uuidv4().substr(0, 8)}`;
 
     // Create payment record
+    console.log('[PAYMENT-SERVICE] Creating payment record...');
     const payment = new Payment({
       paymentId,
       bookingId,
@@ -40,23 +45,31 @@ exports.processPayment = async (req, res, next) => {
     });
 
     await payment.save();
+    console.log('[PAYMENT-SERVICE] Payment record created');
 
     // Simulate payment processing
     const paymentResult = await simulatePayment(amount);
 
     if (paymentResult.success) {
+      console.log('[PAYMENT-SERVICE] Payment processed successfully');
       payment.status = 'success';
       payment.transactionId = paymentResult.transactionId;
       await payment.save();
 
       // Confirm booking
+      console.log('\n[PAYMENT-SERVICE] Step: Confirming booking with Booking Service...');
       try {
         await bookingService.confirmBooking(bookingId);
+        console.log('[PAYMENT-SERVICE] Booking confirmed successfully');
       } catch (error) {
         console.error('Failed to confirm booking:', error);
         // Payment succeeded but booking confirmation failed
         // In production, this would trigger a compensation transaction
       }
+
+      console.log('[PAYMENT-SERVICE] ========================================');
+      console.log('[PAYMENT-SERVICE] PAYMENT COMPLETED SUCCESSFULLY');
+      console.log('[PAYMENT-SERVICE] ========================================\n');
 
       res.status(200).json({
         message: 'Payment processed successfully',
@@ -66,8 +79,13 @@ exports.processPayment = async (req, res, next) => {
         bookingId,
       });
     } else {
+      console.log('[PAYMENT-SERVICE] Payment processing failed');
       payment.status = 'failed';
       await payment.save();
+
+      console.log('[PAYMENT-SERVICE] ========================================');
+      console.log('[PAYMENT-SERVICE] PAYMENT FAILED');
+      console.log('[PAYMENT-SERVICE] ========================================\n');
 
       res.status(400).json({
         message: 'Payment processing failed',
