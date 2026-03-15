@@ -4,11 +4,11 @@ name: Event Service – ECR Build, Push & ECS Deploy
 
 on:
   push:
-    branches: [main, develop]
+    branches: [main, dev]
     paths:
       - 'event-service/**'
   pull_request:
-    branches: [main, develop]
+    branches: [main, dev]
     paths:
       - 'event-service/**'
   workflow_dispatch:

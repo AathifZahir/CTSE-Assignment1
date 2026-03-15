@@ -4,11 +4,11 @@ name: Payment Service – ECR Build, Push & ECS Deploy
 
 on:
   push:
-    branches: [main, develop]
+    branches: [main, dev]
     paths:
       - 'payment-service/**'
   pull_request:
-    branches: [main, develop]
+    branches: [main, dev]
     paths:
       - 'payment-service/**'
   workflow_dispatch:

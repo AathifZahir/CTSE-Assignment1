@@ -4,11 +4,11 @@ name: User Service – ECR Build, Push & ECS Deploy
 
 on:
   push:
-    branches: [main, develop]
+    branches: [main, dev]
     paths:
       - 'user-service/**'
   pull_request:
-    branches: [main, develop]
+    branches: [main, dev]
     paths:
       - 'user-service/**'
   workflow_dispatch:

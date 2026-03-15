@@ -4,11 +4,11 @@ name: Booking Service – ECR Build, Push & ECS Deploy
 
 on:
   push:
-    branches: [main, develop]
+    branches: [main, dev]
     paths:
       - 'booking-service/**'
   pull_request:
-    branches: [main, develop]
+    branches: [main, dev]
     paths:
       - 'booking-service/**'
   workflow_dispatch:
