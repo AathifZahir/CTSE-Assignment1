@@ -48,10 +48,14 @@ app.use(requestLogger);
 app.use(`${BASE_PATH}/api-docs`, swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 // Routes
-app.use('/api/events', eventRoutes);
+app.use(`${BASE_PATH}/api/events`, eventRoutes);
 
 // Health check
 app.get(`${BASE_PATH}/health`, (req, res) => {
+  res.status(200).json({ status: 'OK', service: 'event-service' });
+});
+
+app.get('/health', (req, res) => {
   res.status(200).json({ status: 'OK', service: 'event-service' });
 });
 
@@ -63,6 +67,7 @@ console.log('========================================');
 console.log('EVENT SERVICE STARTING');
 console.log('========================================');
 console.log(`Port: ${PORT}`);
+console.log(`Base Path: ${BASE_PATH}`);
 console.log(`MongoDB URI: ${process.env.MONGODB_URI ? 'Connected' : 'Not configured'}`);
 console.log('========================================');
 

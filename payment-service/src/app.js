@@ -47,7 +47,7 @@ app.use(requestLogger);
 app.use(`${BASE_PATH}/api-docs`, swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 // Routes
-app.use('/api/payments', paymentRoutes);
+app.use(`${BASE_PATH}/api/payments`, paymentRoutes);
 
 // Health check
 app.get(`${BASE_PATH}/health`, (req, res) => {

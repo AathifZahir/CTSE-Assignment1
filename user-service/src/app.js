@@ -48,10 +48,15 @@ app.use(requestLogger);
 app.use(`${BASE_PATH}/api-docs`, swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 // Routes
-app.use('/api/users', userRoutes);
+app.use(`${BASE_PATH}/api/users`, userRoutes);
 
 // Health check
 app.get(`${BASE_PATH}/health`, (req, res) => {
+  res.status(200).json({ status: 'OK', service: 'user-service' });
+});
+
+// Optional plain health check
+app.get('/health', (req, res) => {
   res.status(200).json({ status: 'OK', service: 'user-service' });
 });
 
@@ -63,6 +68,7 @@ console.log('========================================');
 console.log('USER SERVICE STARTING');
 console.log('========================================');
 console.log(`Port: ${PORT}`);
+console.log(`Base Path: ${BASE_PATH}`);
 console.log(`MongoDB URI: ${process.env.MONGODB_URI ? 'Connected' : 'Not configured'}`);
 console.log('========================================');
 
