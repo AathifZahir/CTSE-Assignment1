@@ -39,11 +39,8 @@ Each microservice is independently deployable. See individual service README fil
 
 ## Inter-Service Communication
 
-All services communicate via synchronous REST API calls:
-- Booking Service ↔ User Service (user validation)
-- Booking Service ↔ Event Service (availability checking)
-- Booking Service ↔ Payment Service (payment processing)
-- Payment Service → Booking Service (payment confirmation)
+- **REST API:** Booking Service ↔ User Service (user validation), Booking Service ↔ Event Service (availability), Booking Service ↔ Payment Service (payment processing).
+- **Async (SQS):** Payment Service publishes booking confirmation messages to Amazon SQS; Booking Service consumes them and confirms bookings. See [docs/sqs-setup.md](docs/sqs-setup.md) for queue creation, IAM, and environment variables.
 
 ## Deployment
 

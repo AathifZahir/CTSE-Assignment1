@@ -1,6 +1,6 @@
 const Payment = require('../models/Payment');
 const { validationResult } = require('express-validator');
-const bookingService = require('../services/bookingService');
+const sqsService = require('../services/sqsService');
 const { v4: uuidv4 } = require('uuid');
 
 // Simulate payment processing (in production, this would integrate with a payment gateway)
@@ -56,15 +56,18 @@ exports.processPayment = async (req, res, next) => {
       payment.transactionId = paymentResult.transactionId;
       await payment.save();
 
-      // Confirm booking
-      console.log('\n[PAYMENT-SERVICE] Step: Confirming booking with Booking Service...');
+      // Send booking confirmation to SQS for async processing by booking-service
+      console.log('\n[PAYMENT-SERVICE] Step: Sending booking confirmation to SQS...');
       try {
-        await bookingService.confirmBooking(bookingId);
-        console.log('[PAYMENT-SERVICE] Booking confirmed successfully');
+        await sqsService.sendBookingConfirmationMessage({
+          bookingId,
+          paymentId: payment.paymentId,
+          userId,
+        });
+        console.log('[PAYMENT-SERVICE] Booking confirmation message sent to SQS');
       } catch (error) {
-        console.error('Failed to confirm booking:', error);
-        // Payment succeeded but booking confirmation failed
-        // In production, this would trigger a compensation transaction
+        console.error('Failed to send booking confirmation to SQS:', error);
+        // Payment succeeded but message not sent; message can be retried or handled via DLQ
       }
 
       console.log('[PAYMENT-SERVICE] ========================================');

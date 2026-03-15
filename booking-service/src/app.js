@@ -8,6 +8,7 @@ require('dotenv').config();
 const bookingRoutes = require('./routes/bookingRoutes');
 const { errorHandler } = require('./middleware/errorHandler');
 const { requestLogger } = require('./middleware/requestLogger');
+const { startSqsConsumer } = require('./services/sqsConsumer');
 
 const app = express();
 const PORT = process.env.PORT || 3003;
@@ -76,6 +77,7 @@ mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/booking-s
       console.log(`API Documentation: http://localhost:${PORT}/api-docs`);
       console.log(`Health Check: http://localhost:${PORT}/health`);
       console.log('========================================');
+      startSqsConsumer();
     });
   })
   .catch((error) => {

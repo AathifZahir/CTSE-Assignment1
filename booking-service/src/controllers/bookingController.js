@@ -80,7 +80,8 @@ exports.createBooking = async (req, res, next) => {
       );
 
       booking.paymentId = payment.paymentId;
-      booking.status = payment.status === 'success' ? 'confirmed' : 'pending';
+      // Leave status as pending; booking-service SQS consumer will set to confirmed when message is processed
+      booking.status = 'pending';
       await booking.save();
 
       console.log('[BOOKING-SERVICE] Step 5 Complete: Payment processed');
@@ -183,28 +184,36 @@ exports.cancelBooking = async (req, res, next) => {
   }
 };
 
-// Confirm booking (called by Payment Service)
+/**
+ * Core logic: confirm a booking by ID. Used by both HTTP handler and SQS consumer.
+ * @returns {Promise<Object>} The updated booking
+ * @throws if booking not found
+ */
+exports.confirmBookingById = async (bookingId) => {
+  const booking = await Booking.findById(bookingId);
+  if (!booking) {
+    throw new Error('Booking not found');
+  }
+  booking.status = 'confirmed';
+  await booking.save();
+  console.log(`[BOOKING-SERVICE] Booking confirmed: ${bookingId}`);
+  return booking;
+};
+
+// Confirm booking (HTTP: called by Payment Service or manual trigger)
 exports.confirmBooking = async (req, res, next) => {
   try {
     const { bookingId } = req.params;
     console.log(`[BOOKING-SERVICE] Received booking confirmation request for: ${bookingId}`);
-    
-    const booking = await Booking.findById(bookingId);
-
-    if (!booking) {
-      return res.status(404).json({ message: 'Booking not found' });
-    }
-
-    booking.status = 'confirmed';
-    await booking.save();
-
-    console.log(`[BOOKING-SERVICE] Booking confirmed: ${bookingId}`);
-
+    const booking = await exports.confirmBookingById(bookingId);
     res.json({
       message: 'Booking confirmed successfully',
       booking,
     });
   } catch (error) {
+    if (error.message === 'Booking not found') {
+      return res.status(404).json({ message: 'Booking not found' });
+    }
     next(error);
   }
 };

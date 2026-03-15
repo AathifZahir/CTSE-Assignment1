@@ -21,7 +21,8 @@
     "express-validator": "^7.0.1",
     "swagger-ui-express": "^5.0.0",
     "swagger-jsdoc": "^6.2.8",
-    "axios": "^1.6.2"
+    "axios": "^1.6.2",
+    "@aws-sdk/client-sqs": "^3.0.0"
   },
   "devDependencies": {
     "nodemon": "^3.0.2",
