@@ -1,41 +1,28 @@
-# Build, push to ECR, and deploy to ECS for all services on push.
-# Run from repo root (event-ticket-booking-system). Updates images, task definitions, and services.
+# Build, push to ECR, and deploy Event Service to ECS. Runs only when event-service/** changes.
 
-name: ECR Build, Push & ECS Deploy (All Services)
+name: Event Service – ECR Build, Push & ECS Deploy
 
 on:
   push:
     branches: [main, develop]
+    paths:
+      - 'event-service/**'
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'event-service/**'
   workflow_dispatch:
 
 env:
   AWS_REGION: us-east-1
   ECS_CLUSTER: event-booking-cluster
+  SERVICE_NAME: event-service
+  TASK_DEFINITION: event-service-task
+  ECS_SERVICE: event-service-task-service-x7hqnr5m
 
 jobs:
   build-push-deploy:
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - service: user-service
-            context: user-service
-            task_definition: user-service-task
-            ecs_service: user-service-task-service-uhaj7gal
-          - service: event-service
-            context: event-service
-            task_definition: event-service-task
-            ecs_service: event-service-task-service-x7hqnr5m
-          - service: booking-service
-            context: booking-service
-            task_definition: booking-service-task
-            ecs_service: booking-service-task-service-r9lxp1ze
-          - service: payment-service
-            context: payment-service
-            task_definition: payment-service-task
-            ecs_service: payment-service-task-service-k2mr46kq
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -55,11 +42,11 @@ jobs:
         id: build-image
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          ECR_REPOSITORY: ${{ matrix.service }}
+          ECR_REPOSITORY: ${{ env.SERVICE_NAME }}
           IMAGE_TAG: ${{ github.sha }}
           IMAGE_LATEST: latest
         run: |
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_LATEST ./${{ matrix.context }}
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_LATEST ./${{ env.SERVICE_NAME }}
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_LATEST
           echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
@@ -68,7 +55,7 @@ jobs:
       - name: Download ECS task definition
         run: |
           aws ecs describe-task-definition \
-            --task-definition ${{ matrix.task_definition }} \
+            --task-definition ${{ env.TASK_DEFINITION }} \
             --query taskDefinition > task-definition.json
 
       - name: Render task definition with new image
@@ -76,13 +63,13 @@ jobs:
         uses: aws-actions/amazon-ecs-render-task-definition@v1
         with:
           task-definition: task-definition.json
-          container-name: ${{ matrix.service }}
+          container-name: ${{ env.SERVICE_NAME }}
           image: ${{ steps.build-image.outputs.image }}
 
       - name: Deploy to ECS
         uses: aws-actions/amazon-ecs-deploy-task-definition@v2
         with:
           task-definition: ${{ steps.task-def.outputs.task-definition }}
-          service: ${{ matrix.ecs_service }}
+          service: ${{ env.ECS_SERVICE }}
           cluster: ${{ env.ECS_CLUSTER }}
           wait-for-service-stability: true
