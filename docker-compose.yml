@@ -1,34 +1,38 @@
+# Local development only. Copy .env.example to .env and fill in values (never commit .env).
+
 services:
   user-service:
     build: ./user-service
     ports:
-      - "3001:3001"
+      - "${USER_SERVICE_PORT:-3001}:${USER_SERVICE_PORT:-3001}"
     environment:
-      - PORT=3001
-      - MONGODB_URI=mongodb+srv://aathifzahir12_db_user:hfyTZavq1v5uRnVN@cluster0.s7y0brq.mongodb.net/user-service?appName=Cluster0
-      - JWT_SECRET=dev-secret-key
-      - SERVICE_TOKEN=dev-service-token
+      PORT: ${USER_SERVICE_PORT:-3001}
+      MONGODB_URI: ${MONGODB_URI_USER:?Set MONGODB_URI_USER in .env (see .env.example)}
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in .env (see .env.example)}
+      SERVICE_TOKEN: ${SERVICE_TOKEN:?Set SERVICE_TOKEN in .env (see .env.example)}
 
   event-service:
     build: ./event-service
     ports:
-      - "3002:3002"
+      - "${EVENT_SERVICE_PORT:-3002}:${EVENT_SERVICE_PORT:-3002}"
     environment:
-      - PORT=3002
-      - MONGODB_URI=mongodb+srv://aathifzahir12_db_user:hfyTZavq1v5uRnVN@cluster0.s7y0brq.mongodb.net/event-service?appName=Cluster0
-      - SERVICE_TOKEN=dev-service-token
+      PORT: ${EVENT_SERVICE_PORT:-3002}
+      MONGODB_URI: ${MONGODB_URI_EVENT:?Set MONGODB_URI_EVENT in .env (see .env.example)}
+      SERVICE_TOKEN: ${SERVICE_TOKEN}
 
   booking-service:
     build: ./booking-service
     ports:
-      - "3003:3003"
+      - "${BOOKING_SERVICE_PORT:-3003}:${BOOKING_SERVICE_PORT:-3003}"
     environment:
-      - PORT=3003
-      - MONGODB_URI=mongodb+srv://aathifzahir12_db_user:hfyTZavq1v5uRnVN@cluster0.s7y0brq.mongodb.net/booking-service?appName=Cluster0
-      - USER_SERVICE_URL=http://user-service:3001
-      - EVENT_SERVICE_URL=http://event-service:3002
-      - PAYMENT_SERVICE_URL=http://payment-service:3004
-      - SERVICE_TOKEN=dev-service-token
+      PORT: ${BOOKING_SERVICE_PORT:-3003}
+      MONGODB_URI: ${MONGODB_URI_BOOKING:?Set MONGODB_URI_BOOKING in .env (see .env.example)}
+      USER_SERVICE_URL: http://user-service:${USER_SERVICE_PORT:-3001}
+      EVENT_SERVICE_URL: http://event-service:${EVENT_SERVICE_PORT:-3002}
+      PAYMENT_SERVICE_URL: http://payment-service:${PAYMENT_SERVICE_PORT:-3004}
+      SERVICE_TOKEN: ${SERVICE_TOKEN}
+      SQS_QUEUE_URL: ${SQS_QUEUE_URL:-}
+      AWS_REGION: ${AWS_REGION:-us-east-1}
     depends_on:
       - user-service
       - event-service
@@ -37,9 +41,11 @@ services:
   payment-service:
     build: ./payment-service
     ports:
-      - "3004:3004"
+      - "${PAYMENT_SERVICE_PORT:-3004}:${PAYMENT_SERVICE_PORT:-3004}"
     environment:
-      - PORT=3004
-      - MONGODB_URI=mongodb+srv://aathifzahir12_db_user:hfyTZavq1v5uRnVN@cluster0.s7y0brq.mongodb.net/payment-service?appName=Cluster0
-      - BOOKING_SERVICE_URL=http://booking-service:3003
-      - SERVICE_TOKEN=dev-service-token
+      PORT: ${PAYMENT_SERVICE_PORT:-3004}
+      MONGODB_URI: ${MONGODB_URI_PAYMENT:?Set MONGODB_URI_PAYMENT in .env (see .env.example)}
+      BOOKING_SERVICE_URL: http://booking-service:${BOOKING_SERVICE_PORT:-3003}
+      SERVICE_TOKEN: ${SERVICE_TOKEN}
+      SQS_QUEUE_URL: ${SQS_QUEUE_URL:-}
+      AWS_REGION: ${AWS_REGION:-us-east-1}
