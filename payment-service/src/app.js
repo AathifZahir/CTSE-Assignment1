@@ -11,7 +11,7 @@ const { requestLogger } = require('./middleware/requestLogger');
 
 const app = express();
 const PORT = process.env.PORT || 3004;
-
+const BASE_PATH = '/payments';
 // Swagger configuration
 const swaggerOptions = {
   definition: {
@@ -22,6 +22,10 @@ const swaggerOptions = {
       description: 'API documentation for Payment Service',
     },
     servers: [
+      {
+        url: BASE_PATH,
+        description: 'ALB routed path',
+      },
       {
         url: `http://localhost:${PORT}`,
         description: 'Development server',
@@ -40,13 +44,13 @@ app.use(express.urlencoded({ extended: true }));
 app.use(requestLogger);
 
 // Swagger UI
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+app.use(`${BASE_PATH}/api-docs`, swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 // Routes
-app.use('/api/payments', paymentRoutes);
+app.use(`${BASE_PATH}/api/payments`, paymentRoutes);
 
 // Health check
-app.get('/health', (req, res) => {
+app.get(`${BASE_PATH}/health`, (req, res) => {
   res.status(200).json({ status: 'OK', service: 'payment-service' });
 });
 
@@ -71,8 +75,8 @@ mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/payment-s
     console.log('Connected to MongoDB');
     app.listen(PORT, '0.0.0.0', () => {
       console.log(`Payment Service running on port ${PORT}`);
-      console.log(`API Documentation: http://localhost:${PORT}/api-docs`);
-      console.log(`Health Check: http://localhost:${PORT}/health`);
+      console.log(`API Documentation: http://localhost:${PORT}${BASE_PATH}/api-docs`);
+      console.log(`Health Check: http://localhost:${PORT}${BASE_PATH}/health`);
       console.log('========================================');
     });
   })
