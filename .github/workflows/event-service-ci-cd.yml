@@ -21,7 +21,26 @@ env:
   ECS_SERVICE: event-service-task-service-x7hqnr5m
 
 jobs:
+  sonarqube:
+    name: SonarCloud (SAST)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarqube-scan-action@v7.0.0
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        with:
+          args: >
+            -Dsonar.organization=${{ secrets.SONAR_ORGANIZATION }}
+            -Dsonar.projectKey=${{ secrets.SONAR_PROJECT_KEY }}
+
   build-push-deploy:
+    needs: sonarqube
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
