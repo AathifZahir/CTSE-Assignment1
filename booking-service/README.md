@@ -1,6 +1,6 @@
 # Booking Service
 
-Microservice for ticket booking and reservation management. This service orchestrates communication between User, Event, and Payment services.
+Microservice for ticket booking and reservation management. This service orchestrates communication between User, Event, and Payment services. updated
 
 ## Features
 
