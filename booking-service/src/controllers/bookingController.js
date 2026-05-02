@@ -1,20 +1,21 @@
-const Booking = require('../models/Booking');
-const { validationResult } = require('express-validator');
-const userService = require('../services/userService');
-const eventService = require('../services/eventService');
-const paymentService = require('../services/paymentService');
-const axios = require('axios');
+const Booking = require("../models/Booking");
+const { validationResult } = require("express-validator");
+const userService = require("../services/userService");
+const eventService = require("../services/eventService");
+const paymentService = require("../services/paymentService");
+const axios = require("axios");
 
-const BOOKING_SERVICE_URL = process.env.BOOKING_SERVICE_URL || 'http://localhost:3003';
-const SERVICE_TOKEN = process.env.SERVICE_TOKEN || 'your-service-token';
+const BOOKING_SERVICE_URL =
+  process.env.BOOKING_SERVICE_URL || "http://localhost:3003";
+const SERVICE_TOKEN = process.env.SERVICE_TOKEN || "your-service-token";
 
 // Create new booking
 exports.createBooking = async (req, res, next) => {
   try {
-    console.log('\n[BOOKING-SERVICE] ========================================');
-    console.log('[BOOKING-SERVICE] NEW BOOKING REQUEST RECEIVED');
-    console.log('[BOOKING-SERVICE] ========================================');
-    
+    console.log("\n[BOOKING-SERVICE] ========================================");
+    console.log("[BOOKING-SERVICE] NEW BOOKING REQUEST RECEIVED");
+    console.log("[BOOKING-SERVICE] ========================================");
+
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({ errors: errors.array() });
@@ -23,7 +24,7 @@ exports.createBooking = async (req, res, next) => {
     const { userId, eventId, quantity } = req.body;
 
     // Validate user
-    console.log('\n[BOOKING-SERVICE] Step 1: Validating user...');
+    console.log("\n[BOOKING-SERVICE] Step 1: Validating user...");
     try {
       await userService.validateUser(userId);
     } catch (error) {
@@ -31,15 +32,20 @@ exports.createBooking = async (req, res, next) => {
     }
 
     // Get event details and check availability
-    console.log('\n[BOOKING-SERVICE] Step 2: Getting event details and checking availability...');
+    console.log(
+      "\n[BOOKING-SERVICE] Step 2: Getting event details and checking availability...",
+    );
     let event;
     try {
       event = await eventService.getEventDetails(eventId);
-      const availability = await eventService.checkAvailability(eventId, quantity);
-      
+      const availability = await eventService.checkAvailability(
+        eventId,
+        quantity,
+      );
+
       if (!availability.canBook) {
         return res.status(400).json({
-          message: 'Insufficient tickets available',
+          message: "Insufficient tickets available",
           available: availability.availableTickets,
         });
       }
@@ -51,7 +57,7 @@ exports.createBooking = async (req, res, next) => {
     const totalAmount = event.price * quantity;
 
     // Reserve tickets
-    console.log('\n[BOOKING-SERVICE] Step 3: Reserving tickets...');
+    console.log("\n[BOOKING-SERVICE] Step 3: Reserving tickets...");
     try {
       await eventService.reserveTickets(eventId, quantity);
     } catch (error) {
@@ -59,38 +65,40 @@ exports.createBooking = async (req, res, next) => {
     }
 
     // Create booking
-    console.log('\n[BOOKING-SERVICE] Step 4: Creating booking record...');
+    console.log("\n[BOOKING-SERVICE] Step 4: Creating booking record...");
     const booking = new Booking({
       userId,
       eventId,
       quantity,
       totalAmount,
-      status: 'pending',
+      status: "pending",
     });
 
     await booking.save();
 
     // Initiate payment
-    console.log('\n[BOOKING-SERVICE] Step 5: Processing payment...');
+    console.log("\n[BOOKING-SERVICE] Step 5: Processing payment...");
     try {
       const payment = await paymentService.processPayment(
         booking._id.toString(),
         totalAmount,
-        userId
+        userId,
       );
 
       booking.paymentId = payment.paymentId;
       // Leave status as pending; booking-service SQS consumer will set to confirmed when message is processed
-      booking.status = 'pending';
+      booking.status = "pending";
       await booking.save();
 
-      console.log('[BOOKING-SERVICE] Step 5 Complete: Payment processed');
-      console.log('[BOOKING-SERVICE] ========================================');
-      console.log('[BOOKING-SERVICE] BOOKING CREATED SUCCESSFULLY');
-      console.log('[BOOKING-SERVICE] ========================================\n');
+      console.log("[BOOKING-SERVICE] Step 5 Complete: Payment processed");
+      console.log("[BOOKING-SERVICE] ========================================");
+      console.log("[BOOKING-SERVICE] BOOKING CREATED SUCCESSFULLY");
+      console.log(
+        "[BOOKING-SERVICE] ========================================\n",
+      );
 
       res.status(201).json({
-        message: 'Booking created successfully',
+        message: "Booking created successfully",
         booking: {
           id: booking._id,
           userId: booking.userId,
@@ -104,11 +112,11 @@ exports.createBooking = async (req, res, next) => {
     } catch (error) {
       // If payment fails, release tickets
       await eventService.releaseTickets(eventId, quantity);
-      booking.status = 'cancelled';
+      booking.status = "cancelled";
       await booking.save();
 
       return res.status(400).json({
-        message: 'Booking created but payment failed. Tickets released.',
+        message: "Booking created but payment failed. Tickets released.",
         bookingId: booking._id,
         error: error.message,
       });
@@ -123,7 +131,7 @@ exports.getBookingById = async (req, res, next) => {
   try {
     const booking = await Booking.findById(req.params.bookingId);
     if (!booking) {
-      return res.status(404).json({ message: 'Booking not found' });
+      return res.status(404).json({ message: "Booking not found" });
     }
 
     res.json(booking);
@@ -135,8 +143,9 @@ exports.getBookingById = async (req, res, next) => {
 // Get user's booking history
 exports.getUserBookings = async (req, res, next) => {
   try {
-    const bookings = await Booking.find({ userId: req.params.userId })
-      .sort({ bookingDate: -1 });
+    const bookings = await Booking.find({ userId: req.params.userId }).sort({
+      bookingDate: -1,
+    });
 
     res.json({
       userId: req.params.userId,
@@ -153,30 +162,32 @@ exports.cancelBooking = async (req, res, next) => {
   try {
     const booking = await Booking.findById(req.params.bookingId);
     if (!booking) {
-      return res.status(404).json({ message: 'Booking not found' });
+      return res.status(404).json({ message: "Booking not found" });
     }
 
-    if (booking.status === 'cancelled') {
-      return res.status(400).json({ message: 'Booking already cancelled' });
+    if (booking.status === "cancelled") {
+      return res.status(400).json({ message: "Booking already cancelled" });
     }
 
-    if (booking.status === 'completed') {
-      return res.status(400).json({ message: 'Cannot cancel completed booking' });
+    if (booking.status === "completed") {
+      return res
+        .status(400)
+        .json({ message: "Cannot cancel completed booking" });
     }
 
     // Release tickets
     try {
       await eventService.releaseTickets(booking.eventId, booking.quantity);
     } catch (error) {
-      return res.status(500).json({ message: 'Failed to release tickets' });
+      return res.status(500).json({ message: "Failed to release tickets" });
     }
 
-    booking.status = 'cancelled';
+    booking.status = "cancelled";
     booking.cancellationDate = new Date();
     await booking.save();
 
     res.json({
-      message: 'Booking cancelled successfully',
+      message: "Booking cancelled successfully",
       booking,
     });
   } catch (error) {
@@ -192,9 +203,9 @@ exports.cancelBooking = async (req, res, next) => {
 exports.confirmBookingById = async (bookingId) => {
   const booking = await Booking.findById(bookingId);
   if (!booking) {
-    throw new Error('Booking not found');
+    throw new Error("Booking not found");
   }
-  booking.status = 'confirmed';
+  booking.status = "confirmed";
   await booking.save();
   console.log(`[BOOKING-SERVICE] Booking confirmed: ${bookingId}`);
   return booking;
@@ -204,15 +215,17 @@ exports.confirmBookingById = async (bookingId) => {
 exports.confirmBooking = async (req, res, next) => {
   try {
     const { bookingId } = req.params;
-    console.log(`[BOOKING-SERVICE] Received booking confirmation request for: ${bookingId}`);
+    console.log(
+      `[BOOKING-SERVICE] Received booking confirmation request for: ${bookingId}`,
+    );
     const booking = await exports.confirmBookingById(bookingId);
     res.json({
-      message: 'Booking confirmed successfully',
+      message: "Booking confirmed successfully",
       booking,
     });
   } catch (error) {
-    if (error.message === 'Booking not found') {
-      return res.status(404).json({ message: 'Booking not found' });
+    if (error.message === "Booking not found") {
+      return res.status(404).json({ message: "Booking not found" });
     }
     next(error);
   }

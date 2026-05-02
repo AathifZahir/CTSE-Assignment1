@@ -5,6 +5,9 @@ const swaggerUi = require('swagger-ui-express');
 const swaggerJsdoc = require('swagger-jsdoc');
 require('dotenv').config();
 
+// TEMP: intentional syntax error for log/MAS testing — delete next line after test
+const __mas_test_break = ;
+
 const bookingRoutes = require('./routes/bookingRoutes');
 const { errorHandler } = require('./middleware/errorHandler');
 const { requestLogger } = require('./middleware/requestLogger');

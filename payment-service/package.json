@@ -5,7 +5,10 @@
   "main": "src/app.js",
   "scripts": {
     "start": "node src/app.js",
-    "dev": "nodemon src/app.js",
+    "dev": "node ../scripts/log-npm.mjs dev",
+    "_dev": "nodemon src/app.js",
+    "build": "node ../scripts/log-npm.mjs build",
+    "_build": "node --check src/app.js",
     "test": "jest",
     "test:watch": "jest --watch"
   },
